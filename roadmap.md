@@ -35,17 +35,17 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 
 ## Roadmap
 
-### Fase 1 — Fundación (MVP) 🔄 En progreso
+### Fase 1 — Fundación (MVP) ✅ Completa
 
 | Feature | Estado | Descripción |
 |---------|--------|-------------|
-| Proxy Node.js | 🔄 | Express + yahoo-finance2, 1 endpoint por símbolo, cache 60s |
-| Conexión Roblox ↔ Proxy | ⬜ | HttpService server-side, polling cada 60s |
-| UI de mercado | ⬜ | Lista de acciones con precio, cambio %, gráfico mini (sparkline) |
-| Compra/Venta simple | ⬜ | A precio de mercado, 1 clic. Validación de saldo |
-| Portfolio básico | ⬜ | Lista de posiciones, P&L en vivo, valor total |
-| Saldo inicial | ⬜ | $10,000 virtuales al unirse |
-| Persistencia | ⬜ | DataStore por jugador (saldo, posiciones, historial) |
+| Proxy Node.js | ✅ | Express + yahoo-finance2, 5 endpoints, cache 60s, 14 tests |
+| Conexión Roblox ↔ Proxy | ✅ | HttpService via ProxyClient con cache + stale fallback |
+| UI de mercado | ✅ | Watchlist 16 símbolos, refresh 2s, Bloomberg dark theme |
+| Compra/Venta simple | ✅ | Modal buy/sell con validación, fees 0.1%, confirmación |
+| Portfolio básico | ✅ | P&L en vivo, valor total, profit %, posiciones |
+| Saldo inicial | ✅ | $10,000 virtuales al unirse |
+| Persistencia | ✅ | DataStore batch writes, backoff exponencial, force save |
 
 ### Fase 2 — Progresión y RPG
 
