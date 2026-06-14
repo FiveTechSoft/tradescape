@@ -58,16 +58,25 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 | Oficina virtual | ✅ | 5 niveles (Phone→Executive), basado en profit neto |
 | Perfil con UI | ✅ | ProfileScreen: XP bar, perks tab, missions tab, office info |
 
-### Fase 3 — Trading Avanzado ⬜ Siguiente
+### Fase 3 — Trading Avanzado ✅ Completa
 
 | Feature | Estado | Descripción |
 |---------|--------|-------------|
-| Órdenes Limit | ⬜ | Compra/vende solo si el precio alcanza X |
-| Stop-Loss / Take-Profit | ⬜ | Cierre automático de posición |
-| Short Selling | ⬜ | Venta en corto (desbloqueo en nivel Trader) |
-| Gráficos profundos | ⬜ | Velas, volumen, indicadores (SMA, RSI, MACD) |
-| Múltiples timeframes | ⬜ | 1D, 1W, 1M, 1Y |
-| "Por qué subió/bajó" | ⬜ | Noticias reales ligadas a movimientos grandes |
+| Órdenes Limit | ✅ | Compra/vende a precio objetivo, 90 días GTC |
+| Stop-Loss / Take-Profit | ✅ | Cierre automático, gatillado por precio |
+| Short Selling | ✅ | Venta en corto con 50% margen, perk-gated |
+| Gráficos de velas | ✅ | Renderizado client-side, wicks, volumen |
+| Timeframes | ✅ | 1D, 1W, 1M, 3M, 6M, 1Y |
+| "Por qué subió/bajó" | ✅ | NewsWidget contextual + tips educativos |
+
+### Fase 4 — Social y Competitivo ⬜ Siguiente
+
+| Feature | Estado | Descripción |
+|---------|--------|-------------|
+| Clubes de trading | ⬜ | Grupos de hasta 20, chat interno, portfolio colectivo, ranking |
+| Torneos semanales | ⬜ | $10K frescos cada semana, gana quien más profit % |
+| Copy-trading | ⬜ | Ver portfolios top traders (retrasado 15 min) |
+| Leaderboard global | ⬜ | Por rendimiento, por patrimonio, por nivel |
 
 ### Fase 4 — Social y Competitivo
 
