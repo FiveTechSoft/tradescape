@@ -1,4 +1,4 @@
-# TradeVille — Design Document
+# TradeScape — Design Document
 
 > Roblox Trading RPG con datos reales de mercados globales.
 > Fecha: 2026-06-14

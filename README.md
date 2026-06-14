@@ -1,4 +1,4 @@
-# 🏦 TradeVille
+# 🏦 TradeScape
 
 Simulador de trading RPG en Roblox con datos reales de mercados globales. El mercado real es el juego.
 
