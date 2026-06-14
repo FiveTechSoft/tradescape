@@ -18,6 +18,10 @@ local Perks = require(script.Parent.TradingService.Perks)
 local Missions = require(script.Parent.TradingService.Missions)
 local OfficeManager = require(script.Parent.TradingService.OfficeManager)
 local Orders = require(script.Parent.TradingService.Orders)
+local ClubManager = require(script.Parent.TradingService.ClubManager)
+local TournamentManager = require(script.Parent.TradingService.TournamentManager)
+local Leaderboard = require(script.Parent.DataStore.Leaderboard)
+local CopyTrade = require(script.Parent.TradingService.CopyTrade)
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -52,6 +56,26 @@ local CancelOrder = createRemoteFunction("CancelOrder")
 local GetOrders = createRemoteFunction("GetOrders")
 local ShortSell = createRemoteFunction("ShortSell")
 local CoverShort = createRemoteFunction("CoverShort")
+
+-- Club
+local CreateClub = createRemoteFunction("CreateClub")
+local JoinClub = createRemoteFunction("JoinClub")
+local LeaveClub = createRemoteFunction("LeaveClub")
+local InviteToClub = createRemoteFunction("InviteToClub")
+local KickFromClub = createRemoteFunction("KickFromClub")
+local SendClubChat = createRemoteFunction("SendClubChat")
+local GetClubInfo = createRemoteFunction("GetClubInfo")
+
+-- Tournament
+local GetTournamentEntry = createRemoteFunction("GetTournamentEntry")
+local ExecuteTournamentTrade = createRemoteFunction("ExecuteTournamentTrade")
+local GetTournamentLeaderboard = createRemoteFunction("GetTournamentLeaderboard")
+
+-- Leaderboard
+local GetGlobalLeaderboard = createRemoteFunction("GetGlobalLeaderboard")
+
+-- Copy trade
+local GetTopTraderPortfolio = createRemoteFunction("GetTopTraderPortfolio")
 
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
@@ -299,6 +323,153 @@ CoverShort.OnServerInvoke = function(player, symbol, shares)
 end
 
 -- ============================================================
+-- CLUBS
+-- ============================================================
+CreateClub.OnServerInvoke = function(player, clubName)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+	if data.clubId then return { success = false, message = "Already in a club: " .. (data.clubName or "") } end
+
+	local ok, msg, clubId = ClubManager.createClub(player.UserId, clubName)
+	if ok then
+		data.clubId = clubId
+		data.clubRole = "owner"
+		data.clubName = clubName
+		PlayerData.queueSave(data)
+	end
+	return { success = ok, message = msg, clubId = clubId }
+end
+
+GetClubInfo.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data or not data.clubId then return nil end
+
+	local club = ClubManager.loadClub(data.clubId)
+	if club then
+		ClubManager.updateStats(club, activePlayers)
+		ClubManager.saveClub(club)
+	end
+	return club
+end
+
+InviteToClub.OnServerInvoke = function(player, targetUserId)
+	local data = activePlayers[player.UserId]
+	if not data or not data.clubId then return { success = false, message = "Not in a club" } end
+
+	local club = ClubManager.loadClub(data.clubId)
+	if not club then return { success = false, message = "Club not found" } end
+
+	local ok, msg = ClubManager.invite(club, player.UserId, targetUserId)
+	if ok then ClubManager.saveClub(club) end
+	return { success = ok, message = msg }
+end
+
+JoinClub.OnServerInvoke = function(player, clubId)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+	if data.clubId then return { success = false, message = "Already in a club" } end
+
+	local club = ClubManager.loadClub(clubId)
+	if not club then return { success = false, message = "Club not found" } end
+
+	local ok, msg = ClubManager.acceptInvite(club, player.UserId)
+	if ok then
+		ClubManager.saveClub(club)
+		data.clubId = clubId
+		data.clubRole = "member"
+		data.clubName = club.name
+		PlayerData.queueSave(data)
+	end
+	return { success = ok, message = msg }
+end
+
+LeaveClub.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data or not data.clubId then return { success = false, message = "Not in a club" } end
+
+	local club = ClubManager.loadClub(data.clubId)
+	if club then
+		ClubManager.leaveClub(club, player.UserId)
+		ClubManager.saveClub(club)
+	end
+	data.clubId = nil
+	data.clubRole = nil
+	data.clubName = nil
+	PlayerData.queueSave(data)
+	return { success = true, message = "Left club" }
+end
+
+KickFromClub.OnServerInvoke = function(player, targetUserId)
+	local data = activePlayers[player.UserId]
+	if not data or not data.clubId then return { success = false, message = "Not in a club" } end
+
+	local club = ClubManager.loadClub(data.clubId)
+	if not club then return { success = false, message = "Club not found" } end
+
+	local ok, msg = ClubManager.kick(club, player.UserId, targetUserId)
+	if ok then ClubManager.saveClub(club) end
+	return { success = ok, message = msg }
+end
+
+SendClubChat.OnServerInvoke = function(player, message)
+	local data = activePlayers[player.UserId]
+	if not data or not data.clubId then return { success = false, message = "Not in a club" } end
+
+	local club = ClubManager.loadClub(data.clubId)
+	if not club then return { success = false, message = "Club not found" } end
+
+	local chat = ClubManager.sendChat(club, player.UserId, player.Name, message)
+	ClubManager.saveClub(club)
+	return chat
+end
+
+-- ============================================================
+-- TOURNAMENT
+-- ============================================================
+GetTournamentEntry.OnServerInvoke = function(player)
+	return TournamentManager.getEntry(player.UserId)
+end
+
+ExecuteTournamentTrade.OnServerInvoke = function(player, tradeType, symbol, shares)
+	-- Simplified for MVP: same as regular trade but on tournament balance
+	local entry = TournamentManager.getEntry(player.UserId)
+	-- TODO: full tournament trading logic (Phase 4.5)
+	return { success = false, message = "Tournament trading coming soon" }
+end
+
+GetTournamentLeaderboard.OnServerInvoke = function(player)
+	return TournamentManager.getLeaderboard()
+end
+
+-- ============================================================
+-- LEADERBOARD
+-- ============================================================
+GetGlobalLeaderboard.OnServerInvoke = function(player, category)
+	category = category or "value"
+	if category == "value" then return Leaderboard.getByValue() end
+	if category == "level" then return Leaderboard.getByLevel() end
+	return Leaderboard.getByValue()
+end
+
+-- ============================================================
+-- COPY TRADE
+-- ============================================================
+GetTopTraderPortfolio.OnServerInvoke = function(player, targetUserId)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+
+	local Perks = require(script.Parent.TradingService.Perks)
+	if not Perks.hasPerk(data, "copy_trade_view") then
+		return nil, "Requires copy_trade_view perk"
+	end
+
+	local targetData = activePlayers[targetUserId]
+	if not targetData then return nil end
+
+	return CopyTrade.getSanitizedPortfolio(targetData)
+end
+
+-- ============================================================
 -- Player lifecycle
 -- ============================================================
 local function onPlayerAdded(player)
@@ -333,6 +504,7 @@ Players.PlayerRemoving:Connect(onPlayerRemoving)
 -- ============================================================
 -- Track last order processing time
 local lastOrderProcess = 0
+local lastLeaderboardRefresh = 0
 
 RunService.Heartbeat:Connect(function()
 	PlayerData.processQueue()
@@ -347,6 +519,11 @@ RunService.Heartbeat:Connect(function()
 				PlayerData.queueSave(data)
 			end
 		end
+	end
+
+	if now - lastLeaderboardRefresh >= 300 then
+		lastLeaderboardRefresh = now
+		Leaderboard.refresh(activePlayers)
 	end
 end)
 
