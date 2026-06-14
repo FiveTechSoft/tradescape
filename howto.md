@@ -29,7 +29,7 @@ Start-Process $studioExe.FullName -ArgumentList "C:\pipe\tradescape.rbxlx"
 
 ```
 c:\pipe/
-├── CLAUDE.md                          # This file — dev guide
+├── howto.md                          # This file — dev guide
 ├── CHANGELOG.md                       # All changes by phase
 ├── README.md                          # Public project overview
 ├── roadmap.md                         # 6-phase roadmap with progress
