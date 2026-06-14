@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+dist/
+.env
+*.log
+
+# Roblox
+*.rbxlx
+*.rbxl
+/build/
+/export/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
