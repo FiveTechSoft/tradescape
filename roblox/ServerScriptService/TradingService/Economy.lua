@@ -245,6 +245,136 @@ function Economy.executeSell(playerData, quote, shares)
 end
 
 -- ============================================================
+-- Short selling
+-- ============================================================
+function Economy.validateShortSell(playerData, quote, shares)
+	if not quote or not quote.p or quote.p <= 0 then
+		return false, "Invalid quote data"
+	end
+
+	if shares < GameConfig.MIN_SHARES or shares > GameConfig.MAX_SHARES_PER_TRADE then
+		return false, "Invalid share quantity"
+	end
+
+	local totalValue = quote.p * shares
+	-- Short selling requires 50% margin (cash collateral)
+	local marginRequired = totalValue * 0.5
+	local fee = Economy.calculateFee(totalValue)
+
+	if playerData.balance < (marginRequired + fee) then
+		return false, string.format("Need $%.2f margin for short sell (50%%)", marginRequired)
+	end
+
+	return true, nil
+end
+
+function Economy.executeShortSell(playerData, quote, shares)
+	local totalValue = quote.p * shares
+	local fee = Economy.calculateFee(totalValue)
+	local marginRequired = totalValue * 0.5
+
+	-- Lock margin collateral
+	playerData.balance = playerData.balance - fee
+
+	-- Track short position (negative shares = short)
+	local existing = playerData.positions[quote.s]
+	if existing and existing.shares < 0 then
+		-- Already have short position, add to it
+		local newShares = existing.shares - shares
+		local newCost = existing.totalCost + totalValue
+		existing.shares = newShares
+		existing.avgPrice = newCost / math.abs(newShares)
+		existing.totalCost = newCost
+	else
+		-- New short position
+		playerData.positions[quote.s] = {
+			symbol = quote.s,
+			shares = -shares,
+			avgPrice = quote.p,
+			totalCost = totalValue,
+			opened = os.time(),
+			isShort = true,
+		}
+	end
+
+	Economy.recordTrade(playerData, {
+		timestamp = os.time(),
+		symbol = quote.s,
+		type = "short_sell",
+		shares = shares,
+		price = quote.p,
+		total = totalValue,
+		fee = fee,
+		balanceAfter = playerData.balance,
+	})
+
+	playerData.stats.totalTrades = playerData.stats.totalTrades + 1
+
+	return {
+		success = true,
+		message = string.format("Shorted %d %s at $%.2f. Fee: $%.0f. (50%% margin locked)",
+			shares, quote.s, quote.p, fee),
+		newBalance = playerData.balance,
+		position = playerData.positions[quote.s],
+	}
+end
+
+-- Cover short position (buy back)
+function Economy.executeCover(playerData, quote, shares)
+	local position = playerData.positions[quote.s]
+	if not position or not position.isShort then
+		return false, "No short position for " .. quote.s
+	end
+
+	local absShares = math.abs(position.shares)
+	shares = math.min(shares, absShares)
+
+	local totalCost = quote.p * shares
+	local fee = Economy.calculateFee(totalCost)
+
+	-- Profit from short = (sold price - buy back price) * shares
+	local profitLoss = (position.avgPrice - quote.p) * shares - fee
+
+	playerData.balance = playerData.balance - totalCost - fee
+	playerData.balance = playerData.balance + (position.avgPrice * shares) -- release margin
+
+	position.shares = position.shares + shares
+	if position.shares >= 0 then
+		-- Position fully covered
+		playerData.positions[quote.s] = nil
+	end
+
+	Economy.recordTrade(playerData, {
+		timestamp = os.time(),
+		symbol = quote.s,
+		type = "cover",
+		shares = shares,
+		price = quote.p,
+		total = totalCost,
+		fee = fee,
+		profitLoss = profitLoss,
+		balanceAfter = playerData.balance,
+	})
+
+	playerData.stats.totalTrades = playerData.stats.totalTrades + 1
+	if profitLoss > 0 then
+		playerData.stats.profitableTrades = playerData.stats.profitableTrades + 1
+		playerData.stats.totalProfit = playerData.stats.totalProfit + profitLoss
+	else
+		playerData.stats.totalLoss = playerData.stats.totalLoss + math.abs(profitLoss)
+	end
+
+	return {
+		success = true,
+		message = string.format("Covered %d %s at $%.2f. %s $%.2f",
+			shares, quote.s, quote.p,
+			profitLoss >= 0 and "Profit:" or "Loss:", math.abs(profitLoss)),
+		newBalance = playerData.balance,
+		profitLoss = profitLoss,
+	}
+end
+
+-- ============================================================
 -- Trade history (keep last 500)
 -- ============================================================
 function Economy.recordTrade(playerData, trade)
