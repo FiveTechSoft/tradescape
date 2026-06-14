@@ -25,6 +25,9 @@ local Leaderboard = require(script.Parent.DataStore.Leaderboard)
 local CopyTrade = require(script.Parent.TradingService.CopyTrade)
 local ShopManager = require(script.Parent.TradingService.ShopManager)
 local ThemeManager = require(script.Parent.TradingService.ThemeManager)
+local OptionsManager = require(script.Parent.TradingService.OptionsManager)
+local EventManager = require(script.Parent.TradingService.EventManager)
+local SeasonManager = require(script.Parent.TradingService.SeasonManager)
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -84,6 +87,20 @@ local GetTopTraderPortfolio = createRemoteFunction("GetTopTraderPortfolio")
 local GetShopItems = createRemoteFunction("GetShopItems")
 local GetTheme = createRemoteFunction("GetTheme")
 local SetTheme = createRemoteFunction("SetTheme")
+
+-- Options
+local GetOptionStrikes = createRemoteFunction("GetOptionStrikes")
+local BuyOption = createRemoteFunction("BuyOption")
+local ExerciseOption = createRemoteFunction("ExerciseOption")
+local GetMyOptions = createRemoteFunction("GetMyOptions")
+
+-- Events
+local GetActiveEvent = createRemoteFunction("GetActiveEvent")
+local JoinEvent = createRemoteFunction("JoinEvent")
+local GetMarketMood = createRemoteFunction("GetMarketMood")
+
+-- Seasons
+local GetSeasonStats = createRemoteFunction("GetSeasonStats")
 
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
@@ -498,6 +515,74 @@ SetTheme.OnServerInvoke = function(player, themeId)
 	return true
 end
 
+-- ============================================================
+-- OPTIONS
+-- ============================================================
+GetOptionStrikes.OnServerInvoke = function(player, symbol)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+
+	local Perks = require(script.Parent.TradingService.Perks)
+	if not Perks.hasPerk(data, "options_basic") then
+		return nil, "Requires Options Basic perk (level 25+)"
+	end
+
+	return OptionsManager.getAvailableStrikes(symbol)
+end
+
+BuyOption.OnServerInvoke = function(player, symbol, optionType, strike, premium)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	local Perks = require(script.Parent.TradingService.Perks)
+	if not Perks.hasPerk(data, "options_basic") then
+		return { success = false, message = "Requires level 25+ and Options Basic perk" }
+	end
+
+	local ok, msg = OptionsManager.buyOption(data, symbol, optionType, strike, premium)
+	if ok then PlayerData.queueSave(data) end
+	return { success = ok, message = msg }
+end
+
+ExerciseOption.OnServerInvoke = function(player, optionIndex)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	local ok, msg = OptionsManager.exerciseOption(data, optionIndex)
+	if ok then PlayerData.queueSave(data) end
+	return { success = ok, message = msg }
+end
+
+GetMyOptions.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return {} end
+	return OptionsManager.getPlayerOptions(data)
+end
+
+-- ============================================================
+-- EVENTS
+-- ============================================================
+GetActiveEvent.OnServerInvoke = function(player)
+	return EventManager.getActiveEvent()
+end
+
+JoinEvent.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+	return { success = EventManager.joinEvent(player.UserId, data) }
+end
+
+GetMarketMood.OnServerInvoke = function(player)
+	return EventManager.getMarketMood()
+end
+
+-- ============================================================
+-- SEASONS
+-- ============================================================
+GetSeasonStats.OnServerInvoke = function(player)
+	return SeasonManager.getSeasonStats(player.UserId)
+end
+
 -- Purchase verification (process receipt from Roblox)
 -- This is called automatically by Roblox when a purchase completes
 local function onPurchaseComplete(player, productId)
@@ -573,6 +658,8 @@ RunService.Heartbeat:Connect(function()
 		lastLeaderboardRefresh = now
 		Leaderboard.refresh(activePlayers)
 	end
+
+	EventManager.checkEvents()
 end)
 
 print("[NetworkHandler] TradeScape server initialized")
