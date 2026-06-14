@@ -17,6 +17,7 @@ local XPManager = require(script.Parent.TradingService.XPManager)
 local Perks = require(script.Parent.TradingService.Perks)
 local Missions = require(script.Parent.TradingService.Missions)
 local OfficeManager = require(script.Parent.TradingService.OfficeManager)
+local Orders = require(script.Parent.TradingService.Orders)
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -46,6 +47,11 @@ local UnlockPerk = createRemoteFunction("UnlockPerk")
 local GetDailyMissions = createRemoteFunction("GetDailyMissions")
 local ClaimMission = createRemoteFunction("ClaimMission")
 local GetOfficeInfo = createRemoteFunction("GetOfficeInfo")
+local CreateOrder = createRemoteFunction("CreateOrder")
+local CancelOrder = createRemoteFunction("CancelOrder")
+local GetOrders = createRemoteFunction("GetOrders")
+local ShortSell = createRemoteFunction("ShortSell")
+local CoverShort = createRemoteFunction("CoverShort")
 
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
@@ -199,6 +205,100 @@ GetOfficeInfo.OnServerInvoke = function(player)
 end
 
 -- ============================================================
+-- CreateOrder — place a limit/stop/take-profit order
+-- ============================================================
+CreateOrder.OnServerInvoke = function(player, orderType, symbol, qty, targetPrice)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	-- Check perk requirements
+	local perkMap = {
+		limit_buy = "limit_orders",
+		limit_sell = "limit_orders",
+		stop_loss = "stop_loss",
+		take_profit = "take_profit",
+	}
+	local requiredPerk = perkMap[orderType]
+	if requiredPerk and not Perks.hasPerk(data, requiredPerk) then
+		return { success = false, message = "Perk not unlocked: " .. requiredPerk }
+	end
+
+	local ok, msg = Orders.createOrder(data, orderType, symbol, qty, targetPrice)
+	PlayerData.queueSave(data)
+	return { success = ok, message = msg }
+end
+
+-- ============================================================
+-- CancelOrder — cancel a pending order
+-- ============================================================
+CancelOrder.OnServerInvoke = function(player, orderId)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	local ok, msg = Orders.cancelOrder(data, orderId)
+	if ok then PlayerData.queueSave(data) end
+	return { success = ok, message = msg }
+end
+
+-- ============================================================
+-- GetOrders — get all pending orders
+-- ============================================================
+GetOrders.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return {} end
+	return Orders.getPendingOrders(data)
+end
+
+-- ============================================================
+-- ShortSell — execute a short sale (requires short_selling perk)
+-- ============================================================
+ShortSell.OnServerInvoke = function(player, symbol, shares)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	if not Perks.hasPerk(data, "short_selling") then
+		return { success = false, message = "Short selling requires level 5 + Short Selling perk" }
+	end
+
+	symbol = symbol:upper()
+	shares = math.floor(tonumber(shares) or 0)
+
+	local quote = ProxyClient.getQuote(symbol)
+	if not quote then
+		return { success = false, message = "Could not fetch price" }
+	end
+
+	local valid, errMsg = Economy.validateShortSell(data, quote, shares)
+	if not valid then
+		return { success = false, message = errMsg }
+	end
+
+	local result = Economy.executeShortSell(data, quote, shares)
+	PlayerData.queueSave(data)
+	return result
+end
+
+-- ============================================================
+-- CoverShort — buy back to close a short position
+-- ============================================================
+CoverShort.OnServerInvoke = function(player, symbol, shares)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+
+	symbol = symbol:upper()
+	shares = math.floor(tonumber(shares) or 0)
+
+	local quote = ProxyClient.getQuote(symbol)
+	if not quote then
+		return { success = false, message = "Could not fetch price" }
+	end
+
+	local result = Economy.executeCover(data, quote, shares)
+	PlayerData.queueSave(data)
+	return result
+end
+
+-- ============================================================
 -- Player lifecycle
 -- ============================================================
 local function onPlayerAdded(player)
@@ -231,8 +331,23 @@ Players.PlayerRemoving:Connect(onPlayerRemoving)
 -- ============================================================
 -- Save loop — batch persistence every heartbeat
 -- ============================================================
+-- Track last order processing time
+local lastOrderProcess = 0
+
 RunService.Heartbeat:Connect(function()
 	PlayerData.processQueue()
+
+	-- Process orders every 10 seconds
+	local now = os.time()
+	if now - lastOrderProcess >= 10 then
+		lastOrderProcess = now
+		for userId, data in pairs(activePlayers) do
+			local filled = Orders.processOrders(data)
+			if #filled > 0 then
+				PlayerData.queueSave(data)
+			end
+		end
+	end
 end)
 
 print("[NetworkHandler] TradeScape server initialized")
