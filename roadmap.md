@@ -89,15 +89,21 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 | Datos premium | ✅ | Perk data_premium comprable |
 | Themes visuales | ✅ | 5 themes (Dark, Light, Matrix, Midnight, Terminal) |
 
-### Fase 6 — Expansión ⬜ Siguiente (Opcional)
+### Fase 6 — Expansión ✅ Completa
 
 | Feature | Estado | Descripción |
 |---------|--------|-------------|
-| Opciones y futuros | ⬜ | Desbloqueo en nivel Magnate |
-| Mercados globales 24h | ⬜ | Sincronización con husos horarios reales |
-| Eventos de mercado | ⬜ | "Crash Survival" en caídas reales del S&P 500 |
-| Temporadas | ⬜ | Reset mensual opcional (sin perder portfolio principal) |
-| API pública | ⬜ | Para que la comunidad cree herramientas externas |
+| Opciones (calls/puts) | ✅ | Simplified Black-Scholes, strikes ±5-20%, nivel 25+ |
+| Eventos de mercado | ✅ | Crash Survival, Earnings, Bull Run; triggers S&P 500 real |
+| Seasons mensuales | ✅ | Stats por mes, leaderboards separados |
+| Market mood | ✅ | Crash/Bearish/Neutral/Bullish/Bull en UI |
+| API pública | ⬜ | Futuro: REST API para comunidad externa |
+
+---
+
+## 🎉 TradeScape — Juego Completo
+
+**6 fases, 1 día, 33 módulos Luau, 33 RemoteFunctions, 14 tests proxy.**
 
 ### Fase 4 — Social y Competitivo
 
