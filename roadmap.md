@@ -69,14 +69,24 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 | Timeframes | ✅ | 1D, 1W, 1M, 3M, 6M, 1Y |
 | "Por qué subió/bajó" | ✅ | NewsWidget contextual + tips educativos |
 
-### Fase 4 — Social y Competitivo ⬜ Siguiente
+### Fase 4 — Social y Competitivo ✅ Completa
 
 | Feature | Estado | Descripción |
 |---------|--------|-------------|
-| Clubes de trading | ⬜ | Grupos de hasta 20, chat interno, portfolio colectivo, ranking |
-| Torneos semanales | ⬜ | $10K frescos cada semana, gana quien más profit % |
-| Copy-trading | ⬜ | Ver portfolios top traders (retrasado 15 min) |
-| Leaderboard global | ⬜ | Por rendimiento, por patrimonio, por nivel |
+| Clubes de trading | ✅ | Grupos hasta 20, roles, chat, portfolio colectivo (C key) |
+| Torneos semanales | ✅ | $10K frescos cada lunes, puro skill, 7 días |
+| Copy-trading | ✅ | Perk-gated, 15min delay, portfolios sanitizados |
+| Leaderboard global | ✅ | Por valor y nivel, top 100, refresh 5min (L key) |
+
+### Fase 5 — Monetización (Cosmética) ⬜ Siguiente
+
+| Feature | Estado | Descripción |
+|---------|--------|-------------|
+| Más slots de portfolio | ⬜ | Robux (no da dinero, solo flexibilidad) |
+| Apariencia de oficina | ⬜ | Decoraciones, terminales, accesorios 3D |
+| Insignias premium | ⬜ | "Trader Verificado", rangos élite |
+| Datos avanzados | ⬜ | Gráficos premium, más indicadores, alertas |
+| Themes visuales | ⬜ | Terminal Bloomberg, Dark Mode Pro, Matrix |
 
 ### Fase 4 — Social y Competitivo
 
