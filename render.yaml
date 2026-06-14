@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: tradescape-proxy
+    env: node
+    rootDir: proxy
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_VERSION
+        value: 20.x
+      - key: API_KEY
+        sync: false
+      - key: CACHE_TTL_QUOTE
+        value: "60"
+      - key: CACHE_TTL_HISTORY
+        value: "300"
+      - key: CACHE_TTL_SEARCH
+        value: "3600"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"

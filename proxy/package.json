@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "TradeScape market data proxy — Yahoo Finance → Roblox",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
