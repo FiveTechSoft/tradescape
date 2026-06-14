@@ -13,6 +13,10 @@ local ProxyClient = require(script.Parent.ProxyClient)
 local Economy = require(script.Parent.TradingService.Economy)
 local Portfolio = require(script.Parent.TradingService.Portfolio)
 local PlayerData = require(script.Parent.DataStore.PlayerData)
+local XPManager = require(script.Parent.TradingService.XPManager)
+local Perks = require(script.Parent.TradingService.Perks)
+local Missions = require(script.Parent.TradingService.Missions)
+local OfficeManager = require(script.Parent.TradingService.OfficeManager)
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -36,6 +40,12 @@ local ExecuteTrade = createRemoteFunction("ExecuteTrade")
 local GetPortfolio = createRemoteFunction("GetPortfolio")
 local SearchSymbols = createRemoteFunction("SearchSymbols")
 local GetInitialData = createRemoteFunction("GetInitialData")
+local GetXPProgress = createRemoteFunction("GetXPProgress")
+local GetAvailablePerks = createRemoteFunction("GetAvailablePerks")
+local UnlockPerk = createRemoteFunction("UnlockPerk")
+local GetDailyMissions = createRemoteFunction("GetDailyMissions")
+local ClaimMission = createRemoteFunction("ClaimMission")
+local GetOfficeInfo = createRemoteFunction("GetOfficeInfo")
 
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
@@ -117,13 +127,75 @@ GetInitialData.OnServerInvoke = function(player)
 
 	return {
 		balance = data.balance,
-		level = data.level,
-		rank = data.rank,
-		xp = data.xp,
-		stats = data.stats,
-		officeLevel = data.officeLevel,
-		positions = data.positions,
+		level = data.level or 1,
+		rank = data.rank or "Novato",
+		xp = data.xp or 0,
+		stats = data.stats or {},
+		officeLevel = data.officeLevel or 0,
+		positions = data.positions or {},
+		perks = data.perks or {},
 	}
+end
+
+-- ============================================================
+-- GetXPProgress — returns XP, level, progress bar data
+-- ============================================================
+GetXPProgress.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+	data.xp = data.xp or 0
+	return XPManager.getXPProgress(data.xp)
+end
+
+-- ============================================================
+-- GetAvailablePerks — list perks player can unlock
+-- ============================================================
+GetAvailablePerks.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+	return Perks.getAvailablePerks(data)
+end
+
+-- ============================================================
+-- UnlockPerk — spend perk points to unlock a perk
+-- ============================================================
+UnlockPerk.OnServerInvoke = function(player, perkId)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+	local ok, msg = Perks.unlockPerk(data, perkId)
+	PlayerData.queueSave(data)
+	return { success = ok, message = msg }
+end
+
+-- ============================================================
+-- GetDailyMissions — get today's 3 missions
+-- ============================================================
+GetDailyMissions.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+	return Missions.getDailyMissions(data)
+end
+
+-- ============================================================
+-- ClaimMission — claim mission reward
+-- ============================================================
+ClaimMission.OnServerInvoke = function(player, missionId)
+	local data = activePlayers[player.UserId]
+	if not data then return { success = false, message = "Not loaded" } end
+	local ok, msg = Missions.claimMission(data, missionId)
+	if ok then
+		PlayerData.queueSave(data)
+	end
+	return { success = ok, message = msg }
+end
+
+-- ============================================================
+-- GetOfficeInfo — office level and progress
+-- ============================================================
+GetOfficeInfo.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return nil end
+	return OfficeManager.getOfficeInfo(data)
 end
 
 -- ============================================================

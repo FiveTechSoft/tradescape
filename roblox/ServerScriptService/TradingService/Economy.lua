@@ -5,6 +5,8 @@
 -- No direct balance manipulation anywhere else.
 
 local GameConfig = require(script.Parent.Parent.GameConfig)
+local XPManager = require(script.Parent.XPManager)
+local Missions = require(script.Parent.Missions)
 
 local Economy = {}
 
@@ -130,6 +132,13 @@ function Economy.executeBuy(playerData, quote, shares)
 
 	playerData.stats.totalTrades = playerData.stats.totalTrades + 1
 
+	-- Trigger mission progress for buys
+	Missions.onTradeCompleted(playerData, {
+		type = "buy",
+		symbol = quote.s,
+		shares = shares,
+	})
+
 	return {
 		success = true,
 		message = string.format("Bought %d %s at $%.2f. Fee: $%.0f", shares, quote.s, quote.p, fee),
@@ -191,6 +200,36 @@ function Economy.executeSell(playerData, quote, shares)
 	end
 	if not playerData.stats.worstTrade or profitLoss < playerData.stats.worstTrade.loss then
 		playerData.stats.worstTrade = { symbol = quote.s, loss = profitLoss }
+	end
+
+	-- RPG: award XP and update missions
+	local profitPercent = 0
+	if position.avgPrice > 0 and position.totalCost > 0 then
+		profitPercent = (profitLoss / position.totalCost) * 100
+	end
+	local xpResult = XPManager.addXP(playerData, XPManager.calculateXP(profitLoss, profitPercent, profitLoss > 0))
+
+	-- Trigger mission progress
+	Missions.onTradeCompleted(playerData, {
+		type = "sell",
+		symbol = quote.s,
+		profitLoss = profitLoss,
+		shares = shares,
+	})
+
+	-- Check office upgrade
+	local OfficeManager = require(script.Parent.OfficeManager)
+	local officeResult = OfficeManager.updateOffice(playerData)
+
+	-- Merge RPG results
+	result.xpResult = xpResult
+	result.officeResult = officeResult
+
+	if xpResult.leveledUp then
+		result.message = result.message .. string.format(" | ⬆ Level %d! (%s)", xpResult.newLevel, xpResult.newRank)
+	end
+	if officeResult.upgraded then
+		result.message = result.message .. string.format(" | 🏢 Office: %s!", officeResult.newName)
 	end
 
 	return {
