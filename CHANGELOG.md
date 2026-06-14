@@ -2,38 +2,39 @@
 
 ## 2026-06-14
 
+### Phase 2 — RPG & Progression Complete ✅
+
+**Server modules:**
+- `XPManager.lua` — 50-level threshold table, rank system (Novato→Whale), XP calculation from trades
+- `Perks.lua` — 10 perks (extra slots, short selling, limit orders, stop-loss, options, etc.), unlock logic with perk points
+- `Missions.lua` — 10 mission definitions (first_buy, profit_100, survive_dip, diversify_3, etc.), daily rotation (3 per day), progress tracking, claim rewards
+- `OfficeManager.lua` — Office visual progression (Phone→Laptop→Dual Screen→Multi Screen→Executive) based on net profit
+
+**Integration:**
+- `Economy.lua` updated — awards XP on trades, triggers mission progress, checks office upgrades
+- `NetworkHandler.server.lua` updated — 6 new RemoteFunctions: GetXPProgress, GetAvailablePerks, UnlockPerk, GetDailyMissions, ClaimMission, GetOfficeInfo
+- `GetInitialData` expanded to include RPG fields (level, rank, xp, perks, officeLevel)
+
+**Client UI:**
+- `ProfileScreen.client.lua` — XP bar with progress, level/rank display, Perks tab (unlock with perk points), Missions tab (track progress, claim rewards), Office info. Open with Tab key.
+
 ### Phase 1 — MVP Complete ✅
 
 **Proxy (Node.js) — 14 tests passing**
-- Express 5.2 server with ESM modules
+- Express 5.2 server deployed on Render: `https://tradescape-nxq0.onrender.com`
 - Yahoo Finance v3 API wrapper (quote, history, search, market-status)
-- TTL cache layer (node-cache, separate instances per data type)
-- Auth middleware (X-API-Key header validation)
-- Rate limit middleware (sliding window, configurable)
-- Endpoints: `/api/quote/:symbol`, `/api/history/:symbol`, `/api/search?q=`, `/api/market-status`, `/api/news/:symbol`
-- Health check: `/health`
-- Deploy guide with PM2 + Nginx
+- TTL cache layer, auth middleware, rate limiting
+- Deploy config with PM2 + Nginx guide
 
-**Roblox (Luau) — 9 modules**
-- `GameConfig.lua` — Constants (balance, fees, proxy URL, cache TTLs)
-- `Types.lua` — Shared Luau type definitions (Quote, Position, TradeResult, etc.)
-- `ProxyClient.lua` — HttpService wrapper with server-side cache + stale fallback
-- `PlayerData.lua` — DataStore persistence with batch writes + exponential backoff
-- `Economy.lua` — Buy/sell execution, validation, fees, stats, trade history
-- `Portfolio.lua` — P&L calculation, portfolio valuation with live quotes
-- `NetworkHandler.server.lua` — 5 RemoteFunctions, player lifecycle, save loop
-- `MarketScreen.client.lua` — Stock watchlist UI with live 2s refresh
-- `TradeWidget.client.lua` — Buy/sell modal with quantity input + confirmation
+**Roblox (Luau) — 14 modules**
+- `GameConfig.lua`, `Types.lua`, `ProxyClient.lua`, `PlayerData.lua`
+- `Economy.lua`, `Portfolio.lua`, `NetworkHandler.server.lua`
+- `MarketScreen.client.lua`, `TradeWidget.client.lua`
 
-**Design docs**
-- `docs/superpowers/specs/2026-06-14-tradescape-design.md`
-- `docs/superpowers/plans/2026-06-14-tradescape-phase-1.md`
-- `roadmap.md` — 6-phase roadmap with progress tracking
-- `proxy/deploy.md` — VPS deployment guide
+**Published:**
+- Roblox Experience: https://www.roblox.com/games/10326757850
+- Community: https://www.roblox.com/es/communities/173376366/TradeScape
+- GitHub: https://github.com/FiveTechSoft/tradescape
 
 ### Renamed
 - TradeVille → TradeScape (Zynga "VILLE" trademark + TradeVille.ro brokerage conflict)
-
-### Registered
-- GitHub: https://github.com/FiveTechSoft/tradescape
-- Roblox Community: https://www.roblox.com/es/communities/173376366/TradeScape

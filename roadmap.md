@@ -47,27 +47,27 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 | Saldo inicial | ✅ | $10,000 virtuales al unirse |
 | Persistencia | ✅ | DataStore batch writes, backoff exponencial, force save |
 
-### Fase 2 — Progresión y RPG
+### Fase 2 — Progresión y RPG ✅ Completa
 
-| Feature | Descripción |
-|---------|-------------|
-| Sistema de niveles | Novato → Trader → Broker → Magnate → Whale |
-| XP de trading | Ganas XP por profit diario, pierdes en pérdidas grandes |
-| Perks por nivel | Más slots de portfolio, short selling, órdenes avanzadas |
-| Misiones diarias | Objetivos tipo: "Compra tu primera acción tech", "Sobrevive un -5%" |
-| Oficina virtual | Cuarto que escala: teléfono → laptop → multi-pantalla → oficina premium |
-| Recompensas cosméticas | Insignias, colores de nombre, avatares temáticos |
+| Feature | Estado | Descripción |
+|---------|--------|-------------|
+| Sistema de niveles | ✅ | 50 niveles, 6 rangos (Novato→Whale), XP por trades |
+| XP de trading | ✅ | Cálculo por profit %, bonus por size, pérdida de XP en losses |
+| Perks por nivel | ✅ | 10 perks, 1 punto por nivel, árbol de desbloqueo |
+| Misiones diarias | ✅ | 10 misiones, rotación diaria (3/día), progreso + claim |
+| Oficina virtual | ✅ | 5 niveles (Phone→Executive), basado en profit neto |
+| Perfil con UI | ✅ | ProfileScreen: XP bar, perks tab, missions tab, office info |
 
-### Fase 3 — Trading Avanzado
+### Fase 3 — Trading Avanzado ⬜ Siguiente
 
-| Feature | Descripción |
-|---------|-------------|
-| Órdenes Limit | Compra/vende solo si el precio alcanza X |
-| Stop-Loss / Take-Profit | Cierre automático de posición |
-| Short Selling | Venta en corto (desbloqueo en nivel Trader) |
-| Gráficos profundos | Velas, volumen, indicadores (SMA, RSI, MACD) |
-| Múltiples timeframes | 1D, 1W, 1M, 1Y |
-| "Por qué subió/bajó" | Noticias reales ligadas a movimientos grandes |
+| Feature | Estado | Descripción |
+|---------|--------|-------------|
+| Órdenes Limit | ⬜ | Compra/vende solo si el precio alcanza X |
+| Stop-Loss / Take-Profit | ⬜ | Cierre automático de posición |
+| Short Selling | ⬜ | Venta en corto (desbloqueo en nivel Trader) |
+| Gráficos profundos | ⬜ | Velas, volumen, indicadores (SMA, RSI, MACD) |
+| Múltiples timeframes | ⬜ | 1D, 1W, 1M, 1Y |
+| "Por qué subió/bajó" | ⬜ | Noticias reales ligadas a movimientos grandes |
 
 ### Fase 4 — Social y Competitivo
 
