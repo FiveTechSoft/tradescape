@@ -78,15 +78,26 @@ Convertir el trading en una **experiencia RPG didáctica y lúdica** dentro de R
 | Copy-trading | ✅ | Perk-gated, 15min delay, portfolios sanitizados |
 | Leaderboard global | ✅ | Por valor y nivel, top 100, refresh 5min (L key) |
 
-### Fase 5 — Monetización (Cosmética) ⬜ Siguiente
+### Fase 5 — Monetización (Cosmética) ✅ Completa
 
 | Feature | Estado | Descripción |
 |---------|--------|-------------|
-| Más slots de portfolio | ⬜ | Robux (no da dinero, solo flexibilidad) |
-| Apariencia de oficina | ⬜ | Decoraciones, terminales, accesorios 3D |
-| Insignias premium | ⬜ | "Trader Verificado", rangos élite |
-| Datos avanzados | ⬜ | Gráficos premium, más indicadores, alertas |
-| Themes visuales | ⬜ | Terminal Bloomberg, Dark Mode Pro, Matrix |
+| Tienda de Robux | ✅ | 6 productos, solo cosméticos, sin ventaja de juego |
+| Slots extra | ✅ | +2 portfolio slots vía Robux |
+| Skins de oficina | ✅ | 2 estilos (Modern, Classic Wall Street) |
+| Insignias premium | ✅ | "Verified Trader" badge dorada |
+| Datos premium | ✅ | Perk data_premium comprable |
+| Themes visuales | ✅ | 5 themes (Dark, Light, Matrix, Midnight, Terminal) |
+
+### Fase 6 — Expansión ⬜ Siguiente (Opcional)
+
+| Feature | Estado | Descripción |
+|---------|--------|-------------|
+| Opciones y futuros | ⬜ | Desbloqueo en nivel Magnate |
+| Mercados globales 24h | ⬜ | Sincronización con husos horarios reales |
+| Eventos de mercado | ⬜ | "Crash Survival" en caídas reales del S&P 500 |
+| Temporadas | ⬜ | Reset mensual opcional (sin perder portfolio principal) |
+| API pública | ⬜ | Para que la comunidad cree herramientas externas |
 
 ### Fase 4 — Social y Competitivo
 
