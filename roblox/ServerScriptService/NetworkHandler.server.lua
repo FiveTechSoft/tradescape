@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 -- Require server modules
 local ProxyClient = require(script.Parent.ProxyClient)
@@ -22,6 +23,8 @@ local ClubManager = require(script.Parent.TradingService.ClubManager)
 local TournamentManager = require(script.Parent.TradingService.TournamentManager)
 local Leaderboard = require(script.Parent.DataStore.Leaderboard)
 local CopyTrade = require(script.Parent.TradingService.CopyTrade)
+local ShopManager = require(script.Parent.TradingService.ShopManager)
+local ThemeManager = require(script.Parent.TradingService.ThemeManager)
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -76,6 +79,11 @@ local GetGlobalLeaderboard = createRemoteFunction("GetGlobalLeaderboard")
 
 -- Copy trade
 local GetTopTraderPortfolio = createRemoteFunction("GetTopTraderPortfolio")
+
+-- Shop & Themes
+local GetShopItems = createRemoteFunction("GetShopItems")
+local GetTheme = createRemoteFunction("GetTheme")
+local SetTheme = createRemoteFunction("SetTheme")
 
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
@@ -468,6 +476,46 @@ GetTopTraderPortfolio.OnServerInvoke = function(player, targetUserId)
 
 	return CopyTrade.getSanitizedPortfolio(targetData)
 end
+
+-- ============================================================
+-- SHOP & THEMES
+-- ============================================================
+GetShopItems.OnServerInvoke = function(player)
+	return ShopManager.getProducts()
+end
+
+GetTheme.OnServerInvoke = function(player)
+	local data = activePlayers[player.UserId]
+	if not data then return "dark" end
+	return data.theme or "dark"
+end
+
+SetTheme.OnServerInvoke = function(player, themeId)
+	local data = activePlayers[player.UserId]
+	if not data then return false end
+	data.theme = themeId
+	PlayerData.queueSave(data)
+	return true
+end
+
+-- Purchase verification (process receipt from Roblox)
+-- This is called automatically by Roblox when a purchase completes
+local function onPurchaseComplete(player, productId)
+	local data = activePlayers[player.UserId]
+	if not data then return Enum.ProductPurchaseDecision.NotProcessedYet end
+
+	local product = ShopManager.processPurchase(player, productId)
+	if product then
+		local ok = ShopManager.grantProduct(data, productId)
+		if ok then
+			PlayerData.queueSave(data)
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
+
+MarketplaceService.ProcessReceipt = onPurchaseComplete
 
 -- ============================================================
 -- Player lifecycle
