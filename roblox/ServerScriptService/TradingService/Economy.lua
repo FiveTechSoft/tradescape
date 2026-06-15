@@ -221,26 +221,26 @@ function Economy.executeSell(playerData, quote, shares)
 	local OfficeManager = require(script.Parent.OfficeManager)
 	local officeResult = OfficeManager.updateOffice(playerData)
 
-	-- Merge RPG results
-	result.xpResult = xpResult
-	result.officeResult = officeResult
+	local message = string.format("Sold %d %s at $%.2f. %s $%.2f. Fee: $%.0f",
+		shares, quote.s, quote.p,
+		profitLoss >= 0 and "Profit:" or "Loss:",
+		math.abs(profitLoss), fee)
 
 	if xpResult.leveledUp then
-		result.message = result.message .. string.format(" | ⬆ Level %d! (%s)", xpResult.newLevel, xpResult.newRank)
+		message = message .. string.format(" | Level %d! (%s)", xpResult.newLevel, xpResult.newRank)
 	end
 	if officeResult.upgraded then
-		result.message = result.message .. string.format(" | 🏢 Office: %s!", officeResult.newName)
+		message = message .. string.format(" | Office: %s!", officeResult.newName)
 	end
 
 	return {
 		success = true,
-		message = string.format("Sold %d %s at $%.2f. %s $%.2f. Fee: $%.0f",
-			shares, quote.s, quote.p,
-			profitLoss >= 0 and "Profit:" or "Loss:",
-			math.abs(profitLoss), fee),
+		message = message,
 		newBalance = playerData.balance,
 		position = playerData.positions[quote.s],
 		profitLoss = profitLoss,
+		xpResult = xpResult,
+		officeResult = officeResult,
 	}
 end
 

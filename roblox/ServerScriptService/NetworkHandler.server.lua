@@ -102,6 +102,10 @@ local GetMarketMood = createRemoteFunction("GetMarketMood")
 -- Seasons
 local GetSeasonStats = createRemoteFunction("GetSeasonStats")
 
+-- News
+local GetSymbolNews = createRemoteFunction("GetSymbolNews")
+local GetMarketNews = createRemoteFunction("GetMarketNews")
+
 -- ============================================================
 -- GetQuote — fetch current quote for a symbol
 -- ============================================================
@@ -483,7 +487,6 @@ GetTopTraderPortfolio.OnServerInvoke = function(player, targetUserId)
 	local data = activePlayers[player.UserId]
 	if not data then return nil end
 
-	local Perks = require(script.Parent.TradingService.Perks)
 	if not Perks.hasPerk(data, "copy_trade_view") then
 		return nil, "Requires copy_trade_view perk"
 	end
@@ -522,7 +525,6 @@ GetOptionStrikes.OnServerInvoke = function(player, symbol)
 	local data = activePlayers[player.UserId]
 	if not data then return nil end
 
-	local Perks = require(script.Parent.TradingService.Perks)
 	if not Perks.hasPerk(data, "options_basic") then
 		return nil, "Requires Options Basic perk (level 25+)"
 	end
@@ -534,7 +536,6 @@ BuyOption.OnServerInvoke = function(player, symbol, optionType, strike, premium)
 	local data = activePlayers[player.UserId]
 	if not data then return { success = false, message = "Not loaded" } end
 
-	local Perks = require(script.Parent.TradingService.Perks)
 	if not Perks.hasPerk(data, "options_basic") then
 		return { success = false, message = "Requires level 25+ and Options Basic perk" }
 	end
@@ -581,6 +582,17 @@ end
 -- ============================================================
 GetSeasonStats.OnServerInvoke = function(player)
 	return SeasonManager.getSeasonStats(player.UserId)
+end
+
+-- ============================================================
+-- NEWS
+-- ============================================================
+GetSymbolNews.OnServerInvoke = function(player, symbol)
+	return ProxyClient.getNews(symbol)
+end
+
+GetMarketNews.OnServerInvoke = function(player)
+	return ProxyClient.getMarketNews()
 end
 
 -- Purchase verification (process receipt from Roblox)

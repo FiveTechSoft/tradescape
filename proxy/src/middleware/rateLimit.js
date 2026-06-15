@@ -1,5 +1,17 @@
 const requestLog = new Map();
 
+// Cleanup old IPs every 5 minutes to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000;
+  for (const [ip, timestamps] of requestLog) {
+    // Remove IPs with no recent requests
+    if (timestamps.length === 0 || timestamps[timestamps.length - 1] < now - WINDOW_MS) {
+      requestLog.delete(ip);
+    }
+  }
+}, 300000);
+
 export function rateLimitMiddleware(req, res, next) {
   const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000;
   const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;

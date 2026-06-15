@@ -97,27 +97,15 @@ function PlayerData.processQueue()
 		writeQueue[userId] = nil
 	end
 
-	-- Save all with retry
+	-- Save all — no blocking retries; re-queue failures for next cycle
 	for userId, data in pairs(toSave) do
-		local saved = false
-		for attempt = 1, GameConfig.MAX_RETRIES do
-			local success, err = pcall(function()
-				local key = "player_" .. tostring(userId)
-				store:SetAsync(key, data)
-			end)
+		local success, err = pcall(function()
+			local key = "player_" .. tostring(userId)
+			store:SetAsync(key, data)
+		end)
 
-			if success then
-				saved = true
-				break
-			else
-				warn("[PlayerData] Save failed for", userId, "attempt", attempt, ":", err)
-				-- Wait with exponential backoff
-				task.wait(GameConfig.RETRY_BACKOFF[attempt])
-			end
-		end
-
-		if not saved then
-			warn("[PlayerData] CRITICAL: Failed to save data for", userId, "after all retries. Re-queueing.")
+		if not success then
+			warn("[PlayerData] Save failed for", userId, ":", err, "— re-queueing")
 			writeQueue[userId] = data
 		end
 	end

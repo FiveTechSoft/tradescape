@@ -12,7 +12,7 @@ GameConfig.MAX_SLOTS_BASE = 5 -- portfolio slots for level 1
 
 -- Proxy
 GameConfig.PROXY_URL = "https://tradescape-nxq0.onrender.com"
-GameConfig.PROXY_API_KEY = "615942e2f23d63b2f765d6d9771319291323442d86ae73ab8bf9d81cad75724b"
+GameConfig.PROXY_API_KEY = _G.PROXY_API_KEY or "CHANGE_ME_IN_GAME_SERVER"
 GameConfig.PROXY_TIMEOUT = 10 -- seconds
 GameConfig.STALE_DATA_THRESHOLD = 120 -- seconds before showing "data unavailable"
 

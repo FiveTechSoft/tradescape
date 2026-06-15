@@ -78,9 +78,8 @@ function OptionsManager.buyOption(playerData, symbol, optionType, strike, premiu
 		balanceAfter = playerData.balance,
 	})
 
-	return true, string.format("Bought %s %s $%.0f %s @ $%.2f x100",
-		symbol, optionType, strike,
-		optionType == "call" and "Call" or "Put", premium)
+	return true, string.format("Bought %s %s $%.0f @ $%.2f x100",
+		symbol, optionType == "call" and "Call" or "Put", strike, premium)
 end
 
 -- Exercise or sell option early (before expiry)

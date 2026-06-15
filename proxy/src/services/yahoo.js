@@ -125,7 +125,57 @@ export async function getMarketStatus() {
 }
 
 export async function getNews(symbol) {
-  // yahoo-finance2 v3 does not have a direct news endpoint
-  // Placeholder for future implementation (RSS, Finnhub, etc.)
-  return { s: symbol, n: [] };
+  try {
+    const results = await yahooFinance.search(symbol);
+    if (!results || !results.news || results.news.length === 0) {
+      return { s: symbol, n: [] };
+    }
+
+    const items = results.news
+      .filter(article => article.title && article.link)
+      .slice(0, 10)
+      .map(article => ({
+        t: article.title,
+        p: article.publisher || 'Unknown',
+        l: article.link,
+        d: article.providerPublishTime || null,
+        img: article.thumbnail?.resolutions?.[0]?.url || null,
+        tickers: article.relatedTickers || [],
+      }));
+
+    return { s: symbol, n: items };
+  } catch (err) {
+    console.error(`[news] Yahoo search failed for ${symbol}:`, err.message);
+    return { s: symbol, n: [], error: 'news_fetch_failed' };
+  }
+}
+
+export async function getMarketNews() {
+  try {
+    const queries = ['stocks', 'S&P 500', 'market'];
+    const allNews = [];
+
+    for (const q of queries) {
+      const results = await yahooFinance.search(q);
+      if (results && results.news) {
+        for (const article of results.news) {
+          if (article.title && article.link && !allNews.find(n => n.t === article.title)) {
+            allNews.push({
+              t: article.title,
+              p: article.publisher || 'Unknown',
+              l: article.link,
+              d: article.providerPublishTime || null,
+              img: article.thumbnail?.resolutions?.[0]?.url || null,
+              tickers: article.relatedTickers || [],
+            });
+          }
+        }
+      }
+    }
+
+    return { s: 'MARKET', n: allNews.slice(0, 15) };
+  } catch (err) {
+    console.error('[news] Market news fetch failed:', err.message);
+    return { s: 'MARKET', n: [], error: 'news_fetch_failed' };
+  }
 }

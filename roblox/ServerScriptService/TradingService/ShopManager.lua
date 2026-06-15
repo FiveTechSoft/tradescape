@@ -106,10 +106,14 @@ end
 
 -- Process a purchase (called from server after MarketplaceService verification)
 function ShopManager.processPurchase(player, productId)
-	local data = nil
-	-- Find player data (access activePlayers from NetworkHandler scope)
-	-- This function is called from NetworkHandler which passes playerData
-	return PRODUCTS[productId]
+	-- productId is a number from Roblox MarketplaceService
+	-- Find product by matching the Roblox productId field
+	for key, product in pairs(PRODUCTS) do
+		if product.productId == productId then
+			return key
+		end
+	end
+	return nil
 end
 
 -- Grant a product to a player

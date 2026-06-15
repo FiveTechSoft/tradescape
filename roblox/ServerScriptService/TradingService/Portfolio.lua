@@ -87,13 +87,16 @@ end
 -- ============================================================
 function Portfolio.getSummary(playerData)
 	local data = Portfolio.calculateValue(playerData)
+	local count = 0
+	for _ in pairs(data.positions) do count = count + 1 end
+
 	return {
 		userId = playerData.userId,
 		balance = data.balance,
 		totalValue = data.totalValue,
 		totalProfit = data.totalProfit,
 		totalProfitPercent = data.totalProfitPercent,
-		positionCount = 0,
+		positionCount = count,
 	}
 end
 

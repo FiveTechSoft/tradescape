@@ -18,6 +18,12 @@ function ClubManager.createClub(ownerId, name)
 		return false, "Name must be 3-30 characters"
 	end
 
+	-- Sanitize: strip control characters, limit to alphanumeric + spaces
+	name = name:gsub("[^%w%s%-]", ""):sub(1, 30)
+	if #name < 3 then
+		return false, "Name must be 3-30 characters"
+	end
+
 	local club = {
 		id = ClubManager.generateId(),
 		name = name,
@@ -62,9 +68,6 @@ function ClubManager.saveClub(club)
 end
 
 function ClubManager.invite(club, inviterUserId, targetUserId)
-	if not club.members or not table.find(club.members, inviterUserId) then
-		return false, "Only members can invite"
-	end
 	if club.ownerId ~= inviterUserId and not table.find(club.admins or {}, inviterUserId) then
 		return false, "Only owner or admins can invite"
 	end

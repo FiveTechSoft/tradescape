@@ -60,6 +60,19 @@ function Leaderboard.refresh(activePlayers)
 		byValue[i] = entries[i]
 	end
 
+	-- Sort by profit %
+	local byProfit = {}
+	for i, e in ipairs(entries) do byProfit[i] = e end
+	table.sort(byProfit, function(a, b)
+		local aPct = a.totalValue > 0 and (a.totalProfit / a.totalValue * 100) or 0
+		local bPct = b.totalValue > 0 and (b.totalProfit / b.totalValue * 100) or 0
+		return aPct > bPct
+	end)
+	local topProfit = {}
+	for i = 1, math.min(100, #byProfit) do
+		topProfit[i] = byProfit[i]
+	end
+
 	-- Sort by level
 	local byLevel = {}
 	for i, e in ipairs(entries) do byLevel[i] = e end
@@ -74,7 +87,7 @@ function Leaderboard.refresh(activePlayers)
 
 	cachedLeaderboard = {
 		byValue = byValue,
-		byProfit = byValue, -- TODO: calculate by profit %
+		byProfit = topProfit,
 		byLevel = topLevel,
 		updated = os.time(),
 	}

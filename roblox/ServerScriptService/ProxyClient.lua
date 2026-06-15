@@ -35,7 +35,17 @@ function ProxyClient.getQuote(symbol)
 	end)
 
 	if ok then
-		local data = HttpService:JSONDecode(result)
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if not decodeOk or not data then
+			warn("[ProxyClient] Failed to decode quote response for", symbol)
+			if cached then
+				cached.data.stale = true
+				return cached.data
+			end
+			return nil, "decode_error", "Invalid response from proxy"
+		end
 		if data.error then
 			warn("[ProxyClient] Quote error for", symbol, ":", data.message)
 			-- Return stale if available
@@ -76,7 +86,13 @@ function ProxyClient.getHistory(symbol, range)
 	end)
 
 	if ok then
-		local data = HttpService:JSONDecode(result)
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if not decodeOk or not data then
+			warn("[ProxyClient] Failed to decode history response for", symbol)
+			return nil, "decode_error"
+		end
 		if data.error then
 			warn("[ProxyClient] History error for", symbol, ":", data.error)
 			return nil, data.error
@@ -99,7 +115,12 @@ function ProxyClient.search(query)
 	end)
 
 	if ok then
-		local data = HttpService:JSONDecode(result)
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if not decodeOk or not data then
+			return {}
+		end
 		if data.error then
 			return {}
 		end
@@ -126,9 +147,14 @@ function ProxyClient.getMarketStatus()
 	end)
 
 	if ok then
-		marketStatusCache = HttpService:JSONDecode(result)
-		marketStatusUpdated = os.time()
-		return marketStatusCache
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if decodeOk and data then
+			marketStatusCache = data
+			marketStatusUpdated = os.time()
+			return marketStatusCache
+		end
 	end
 
 	-- Return cached even if stale
@@ -150,6 +176,51 @@ function ProxyClient.invalidateAll()
 	quoteCache = {}
 	marketStatusCache = nil
 	marketStatusUpdated = 0
+end
+
+-- ============================================================
+-- News
+-- ============================================================
+function ProxyClient.getNews(symbol)
+	symbol = symbol:upper()
+
+	local ok, result = pcall(function()
+		local url = string.format("%s/api/news/%s", GameConfig.PROXY_URL, symbol)
+		return HttpService:GetAsync(url, true, {
+			["X-API-Key"] = GameConfig.PROXY_API_KEY,
+		})
+	end)
+
+	if ok then
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if decodeOk and data then
+			return data.n or {}
+		end
+	end
+
+	return {}
+end
+
+function ProxyClient.getMarketNews()
+	local ok, result = pcall(function()
+		local url = string.format("%s/api/news", GameConfig.PROXY_URL)
+		return HttpService:GetAsync(url, true, {
+			["X-API-Key"] = GameConfig.PROXY_API_KEY,
+		})
+	end)
+
+	if ok then
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if decodeOk and data then
+			return data.n or {}
+		end
+	end
+
+	return {}
 end
 
 return ProxyClient
