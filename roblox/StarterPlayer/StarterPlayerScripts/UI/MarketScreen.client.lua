@@ -17,9 +17,10 @@ local WATCHLIST = {
 	"SPY", "QQQ", "AMD", "INTC", "BA", "JPM", "V", "DIS",
 }
 
--- Create ScreenGui
+-- Create ScreenGui (disabled for Level 1)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MarketScreen"
+ScreenGui.Enabled = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 -- Main frame (dark Bloomberg-style, left side panel)
