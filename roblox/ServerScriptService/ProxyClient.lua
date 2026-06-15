@@ -17,6 +17,44 @@ local marketStatusUpdated = 0
 -- ============================================================
 -- Quote
 -- ============================================================
+function ProxyClient.getQuotes(symbols)
+	local cacheKey = table.concat(symbols, ",")
+	local cached = getCached("quote", cacheKey)
+	if cached then return cached end
+
+	local ok, result = pcall(function()
+		local url = string.format("%s/api/quotes", GameConfig.PROXY_URL)
+		local body = HttpService:JSONEncode({ symbols = symbols })
+		return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson, false, {
+			["X-API-Key"] = GameConfig.PROXY_API_KEY,
+		})
+	end)
+
+	if ok then
+		local decodeOk, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if decodeOk and data and data.quotes then
+			local map = {}
+			for _, q in ipairs(data.quotes) do
+				if q.s then
+					quoteCache[q.s] = { data = q, updated = os.time() }
+					map[q.s] = q
+				end
+			end
+			return map
+		end
+	end
+
+	-- Fallback: fetch one by one
+	local map = {}
+	for _, sym in ipairs(symbols) do
+		local q = ProxyClient.getQuote(sym)
+		if q then map[sym] = q end
+	end
+	return map
+end
+
 function ProxyClient.getQuote(symbol)
 	symbol = symbol:upper()
 

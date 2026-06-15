@@ -244,5 +244,5 @@ end)
 -- ============================================================
 -- Expose to MarketScreen
 -- ============================================================
-_G.OpenTradeWidget = showTradeWidget
-_G.CloseTradeWidget = hideTradeWidget
+shared.OpenTradeWidget = showTradeWidget
+shared.CloseTradeWidget = hideTradeWidget

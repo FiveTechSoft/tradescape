@@ -91,62 +91,53 @@ function Orders.processOrders(playerData)
 	local now = os.time()
 
 	for _, order in ipairs(playerData.orders) do
-		if order.status ~= "pending" then
-			goto continue
-		end
-
-		-- Check expiry
-		if order.expires and now > order.expires then
-			order.status = "expired"
-			goto continue
-		end
-
-		-- Get current price
-		local quote = ProxyClient.getQuote(order.symbol)
-		if not quote or not quote.p then
-			goto continue
-		end
-
-		local currentPrice = quote.p
-		local shouldExecute = false
-
-		if order.type == "limit_buy" and currentPrice <= order.price then
-			shouldExecute = true
-		elseif order.type == "limit_sell" and currentPrice >= order.price then
-			shouldExecute = true
-		elseif order.type == "stop_loss" and currentPrice <= order.price then
-			shouldExecute = true
-		elseif order.type == "take_profit" and currentPrice >= order.price then
-			shouldExecute = true
-		end
-
-		if shouldExecute then
-			-- Map order type to trade type
-			local tradeType = "buy"
-			if order.type == "limit_sell" or order.type == "stop_loss" or order.type == "take_profit" then
-				tradeType = "sell"
-			end
-
-			-- Execute
-			local result
-			if tradeType == "buy" then
-				result = Economy.executeBuy(playerData, quote, order.qty)
+		if order.status == "pending" then
+			-- Check expiry
+			if order.expires and now > order.expires then
+				order.status = "expired"
 			else
-				result = Economy.executeSell(playerData, quote, order.qty)
-			end
+				-- Get current price
+				local quote = ProxyClient.getQuote(order.symbol)
+				if quote and quote.p then
+					local currentPrice = quote.p
+					local shouldExecute = false
 
-			if result.success then
-				order.status = "filled"
-				order.filledAt = currentPrice
-				order.filledTimestamp = now
-				table.insert(filled, {
-					order = order,
-					result = result,
-				})
+					if order.type == "limit_buy" and currentPrice <= order.price then
+						shouldExecute = true
+					elseif order.type == "limit_sell" and currentPrice >= order.price then
+						shouldExecute = true
+					elseif order.type == "stop_loss" and currentPrice <= order.price then
+						shouldExecute = true
+					elseif order.type == "take_profit" and currentPrice >= order.price then
+						shouldExecute = true
+					end
+
+					if shouldExecute then
+						local tradeType = "buy"
+						if order.type == "limit_sell" or order.type == "stop_loss" or order.type == "take_profit" then
+							tradeType = "sell"
+						end
+
+						local result
+						if tradeType == "buy" then
+							result = Economy.executeBuy(playerData, quote, order.qty)
+						else
+							result = Economy.executeSell(playerData, quote, order.qty)
+						end
+
+						if result.success then
+							order.status = "filled"
+							order.filledAt = currentPrice
+							order.filledTimestamp = now
+							table.insert(filled, {
+								order = order,
+								result = result,
+							})
+						end
+					end
+				end
 			end
 		end
-
-		::continue::
 	end
 
 	return filled

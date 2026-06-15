@@ -13,21 +13,42 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ProxyClient = require(script.Parent.ProxyClient)
 local Economy = require(script.Parent.TradingService.Economy)
 local Portfolio = require(script.Parent.TradingService.Portfolio)
-local PlayerData = require(script.Parent.DataStore.PlayerData)
+
+-- DataStore modules may fail in local Studio testing
+local PlayerData_ok, PlayerData = pcall(require, script.Parent.DataStore.PlayerData)
 local XPManager = require(script.Parent.TradingService.XPManager)
 local Perks = require(script.Parent.TradingService.Perks)
 local Missions = require(script.Parent.TradingService.Missions)
 local OfficeManager = require(script.Parent.TradingService.OfficeManager)
 local Orders = require(script.Parent.TradingService.Orders)
-local ClubManager = require(script.Parent.TradingService.ClubManager)
-local TournamentManager = require(script.Parent.TradingService.TournamentManager)
-local Leaderboard = require(script.Parent.DataStore.Leaderboard)
+
+local ClubManager_ok, ClubManager = pcall(require, script.Parent.TradingService.ClubManager)
+local TournamentManager_ok, TournamentManager = pcall(require, script.Parent.TradingService.TournamentManager)
+local Leaderboard_ok, Leaderboard = pcall(require, script.Parent.DataStore.Leaderboard)
 local CopyTrade = require(script.Parent.TradingService.CopyTrade)
 local ShopManager = require(script.Parent.TradingService.ShopManager)
 local ThemeManager = require(script.Parent.TradingService.ThemeManager)
 local OptionsManager = require(script.Parent.TradingService.OptionsManager)
-local EventManager = require(script.Parent.TradingService.EventManager)
-local SeasonManager = require(script.Parent.TradingService.SeasonManager)
+local EventManager_ok, EventManager = pcall(require, script.Parent.TradingService.EventManager)
+local SeasonManager_ok, SeasonManager = pcall(require, script.Parent.TradingService.SeasonManager)
+
+if not PlayerData_ok then warn("[NetworkHandler] PlayerData load failed:", PlayerData) end
+if not ClubManager_ok then warn("[NetworkHandler] ClubManager load failed:", ClubManager) end
+if not TournamentManager_ok then warn("[NetworkHandler] TournamentManager load failed:", TournamentManager) end
+if not Leaderboard_ok then warn("[NetworkHandler] Leaderboard load failed:", Leaderboard) end
+if not EventManager_ok then warn("[NetworkHandler] EventManager load failed:", EventManager) end
+if not SeasonManager_ok then warn("[NetworkHandler] SeasonManager load failed:", SeasonManager) end
+
+-- Stub DataStore-dependent modules for local testing
+local function noop(...) return {} end
+if not PlayerData_ok then
+	PlayerData = { load = noop, createDefault = function() return { balance = 10000, positions = {}, perks = {}, stats = { totalTrades = 0, profitableTrades = 0, totalProfit = 0, totalLoss = 0, currentStreak = 0, bestStreak = 0 }, xp = 0, level = 1, rank = "Novato", tradeHistory = {}, completedMissions = {}, officeLevel = 0 } end, queueSave = noop, forceSave = noop, processQueue = noop }
+end
+if not ClubManager_ok then ClubManager = { createClub = noop, loadClub = noop, saveClub = noop, invite = noop, acceptInvite = noop, leaveClub = noop, kick = noop, sendChat = noop, updateStats = noop } end
+if not TournamentManager_ok then TournamentManager = { getEntry = noop, getLeaderboard = function() return { entries = {} } end } end
+if not Leaderboard_ok then Leaderboard = { getByValue = function() return {} end, getByLevel = function() return {} end, refresh = noop } end
+if not EventManager_ok then EventManager = { getActiveEvent = noop, joinEvent = noop, getMarketMood = function() return "neutral" end, checkEvents = noop } end
+if not SeasonManager_ok then SeasonManager = { getSeasonStats = noop } end
 
 -- Loaded players (in-memory, synced to DataStore periodically)
 local activePlayers = {}
@@ -47,6 +68,7 @@ local function createRemoteFunction(name)
 end
 
 local GetQuote = createRemoteFunction("GetQuote")
+local GetQuotes = createRemoteFunction("GetQuotes")
 local ExecuteTrade = createRemoteFunction("ExecuteTrade")
 local GetPortfolio = createRemoteFunction("GetPortfolio")
 local SearchSymbols = createRemoteFunction("SearchSymbols")
@@ -110,12 +132,15 @@ local GetMarketNews = createRemoteFunction("GetMarketNews")
 -- GetQuote — fetch current quote for a symbol
 -- ============================================================
 GetQuote.OnServerInvoke = function(player, symbol)
-	local data = activePlayers[player.UserId]
-	if not data then
-		return nil, "not_loaded"
-	end
-
 	return ProxyClient.getQuote(symbol)
+end
+
+-- ============================================================
+-- GetQuotes — fetch multiple quotes in one call (batch)
+-- ============================================================
+GetQuotes.OnServerInvoke = function(player, symbols)
+	if type(symbols) ~= "table" then return {} end
+	return ProxyClient.getQuotes(symbols)
 end
 
 -- ============================================================
@@ -162,7 +187,14 @@ end
 GetPortfolio.OnServerInvoke = function(player)
 	local data = activePlayers[player.UserId]
 	if not data then
-		return nil, "not_loaded"
+		return {
+			balance = 10000,
+			positions = {},
+			totalValue = 10000,
+			totalCost = 0,
+			totalProfit = 0,
+			totalProfitPercent = 0,
+		}
 	end
 
 	return Portfolio.calculateValue(data)
@@ -181,7 +213,16 @@ end
 GetInitialData.OnServerInvoke = function(player)
 	local data = activePlayers[player.UserId]
 	if not data then
-		return nil
+		return {
+			balance = 10000,
+			level = 1,
+			rank = "Novato",
+			xp = 0,
+			stats = {},
+			officeLevel = 0,
+			positions = {},
+			perks = {},
+		}
 	end
 
 	return {
