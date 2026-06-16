@@ -1,7 +1,6 @@
 # TradeScape — Development Guide
 
-> Roblox Trading RPG with real global market data.
-> Built June 14, 2026. 4 phases complete.
+> Roblox trading RPG — city exploration + stock collection.
 > GitHub: https://github.com/FiveTechSoft/tradescape
 
 ---
@@ -10,7 +9,7 @@
 
 ```bash
 # Rebuild Roblox place file
-/c/Users/Anto/AppData/Local/Microsoft/WinGet/Packages/Rojo.Rojo_Microsoft.Winget.Source_8wekyb3d8bbwe/rojo.exe build -o tradescape.rbxlx
+& "C:\Users\Anto\AppData\Local\Microsoft\WinGet\Packages\Rojo.Rojo_Microsoft.Winget.Source_8wekyb3d8bbwe\rojo.exe" build -o tradescape.rbxlx
 
 # Run proxy tests
 cd proxy && npm test
@@ -25,213 +24,213 @@ Start-Process $studioExe.FullName -ArgumentList "C:\pipe\tradescape.rbxlx"
 
 ---
 
+## Roblox Studio MCP Setup
+
+### What is it?
+An MCP server that lets AI assistants (Codex, Claude, etc.) execute Luau code inside a live Roblox Studio session. You can read/write game state, take screenshots, and interact with running games.
+
+### Installation (already done)
+
+The MCP is registered in `~/.codex/config.toml`:
+```toml
+[mcp_servers.robloxstudio]
+command = "npx"
+args = ["-y", "@chrrxs/robloxstudio-mcp@latest", "--auto-install-plugin"]
+```
+
+### How to use it
+
+**1. Open Roblox Studio** with the game file:
+```powershell
+$studioExe = Get-ChildItem "$env:LOCALAPPDATA\Roblox\Versions" -Recurse -Filter "RobloxStudioBeta.exe" | Select-Object -First 1
+Start-Process $studioExe.FullName -ArgumentList "C:\pipe\tradescape.rbxlx"
+```
+
+**2. The MCP plugin auto-connects.** Verify with:
+```powershell
+curl.exe -s "http://localhost:58741/health"
+```
+You should see `"pluginConnected":true`.
+
+**3. Start the game (F5).** The MCP gets 3 instances:
+- `edit` — the editor (not running)
+- `server` — the server during playtest
+- `client-1` — the client during playtest
+
+**4. Execute Luau code via MCP:**
+
+```powershell
+# Example: get game state from server
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"execute_luau","arguments":{"code":"return #workspace:GetChildren()","target":"server"}}}'
+$json | Out-File -Encoding utf8 -FilePath "$env:TEMP\mcp_req.json"
+curl.exe -s -X POST "http://localhost:58741/mcp" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d "@$env:TEMP\mcp_req.json"
+```
+
+**5. Available MCP tools:**
+
+| Tool | Description |
+|------|-------------|
+| `execute_luau` | Run Luau code on server/client/edit |
+| `get_connected_instances` | List connected Studio sessions |
+| `capture_screenshot` | Take a screenshot of the game |
+| `get_file_tree` | Get instance hierarchy |
+| `get_place_info` | Get place ID, name, settings |
+| `get_services` | List available services |
+| `search_objects` | Find instances by name/class |
+| `create_object` | Create new instances |
+| `set_property` | Set instance properties |
+
+**6. Targets:**
+- `"target": "server"` — runs on the game server
+- `"target": "client-1"` — runs on the first client
+- `"target": "edit"` — runs in the editor (not playing)
+
+**7. Important: MCP overrides are temporary.** When you restart Studio, all overrides (API key fixes, handler patches) are lost. You must reapply them or fix the code permanently.
+
+### Common MCP commands
+
+```powershell
+# Check MCP status
+curl.exe -s "http://localhost:58741/health"
+
+# List connected instances
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_connected_instances","arguments":{}}}'
+
+# Execute Luau on server
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"execute_luau","arguments":{"code":"return workspace:GetChildren()","target":"server"}}}'
+
+# Execute Luau on client
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"execute_luau","arguments":{"code":"return game.Players.LocalPlayer.Name","target":"client-1"}}}'
+
+# Take screenshot
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"capture_screenshot","arguments":{}}}'
+```
+
+### How to save screenshots
+
+The MCP returns base64 JPEG. To save:
+```powershell
+# Run the screenshot command, save output to file
+$json = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"capture_screenshot","arguments":{}}}'; $json | Out-File -Encoding utf8 -FilePath "$env:TEMP\mcp_req.json"; curl.exe -s -X POST "http://localhost:58741/mcp" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d "@$env:TEMP\mcp_req.json" > "$env:TEMP\screenshot.json"
+
+# Extract base64 and save
+$data = Get-Content "$env:TEMP\screenshot.json" -Raw
+$match = [regex]::Match($data, '"data":"(/9j/[^"]+)"')
+$b64 = $match.Groups[1].Value
+[System.IO.File]::WriteAllBytes("C:\pipe\screenshot.jpg", [System.Convert]::FromBase64String($b64))
+```
+
+---
+
 ## Project Structure
 
 ```
-c:\pipe/
-├── howto.md                          # This file — dev guide
-├── CHANGELOG.md                       # All changes by phase
-├── README.md                          # Public project overview
-├── roadmap.md                         # 6-phase roadmap with progress
-├── default.project.json               # Rojo project config
-├── render.yaml                        # Render deploy config
-├── .gitignore                         # node_modules, .env, Roblox files
+C:\pipe/
+├── howto.md                              # This file
+├── CHANGELOG.md
+├── README.md
+├── roadmap.md
+├── default.project.json                  # Rojo config
+├── tradescape.rbxlx                      # Built Roblox place
 │
-├── proxy/                             # Node.js backend
-│   ├── package.json                   # Express 5.2, yahoo-finance2 3.15, node-cache
-│   ├── .env.example                   # Environment template (API_KEY, PORT, etc.)
-│   ├── .env                           # Local env (gitignored, has real API key)
-│   ├── deploy.md                      # VPS deployment guide (PM2 + Nginx)
+├── proxy/                                # Node.js backend
 │   ├── src/
-│   │   ├── index.js                   # Express entry — mounts all routes + middleware
-│   │   ├── cache.js                   # node-cache wrapper (5 TTL instances)
-│   │   ├── services/
-│   │   │   └── yahoo.js              # Yahoo Finance v3 API (getQuote, getHistory, search, marketStatus)
-│   │   ├── middleware/
-│   │   │   ├── auth.js               # X-API-Key header validation
-│   │   │   └── rateLimit.js          # Sliding window rate limiter (configurable)
-│   │   └── routes/
-│   │       ├── quote.js              # GET /api/quote/:symbol (cache 60s)
-│   │       ├── history.js            # GET /api/history/:symbol?range=1m|3m|6m|1y (cache 300s)
-│   │       ├── search.js             # GET /api/search?q= (cache 3600s)
-│   │       ├── marketStatus.js       # GET /api/market-status (cache 60s)
-│   │       └── news.js               # GET /api/news/:symbol (cache 300s)
+│   │   ├── index.js
+│   │   ├── cache.js
+│   │   ├── services/yahoo.js
+│   │   ├── middleware/auth.js
+│   │   ├── middleware/rateLimit.js
+│   │   └── routes/ (quote, history, search, marketStatus, news)
 │   └── tests/
-│       ├── middleware.test.js         # Auth + rate limit tests
-│       ├── quote.test.js             # Quote endpoint tests
-│       ├── history.test.js           # History endpoint tests
-│       ├── search.test.js            # Search endpoint tests
-│       └── marketStatus.test.js      # Market status tests
 │
-├── roblox/                            # Roblox Luau source
-│   ├── ServerScriptService/
-│   │   ├── GameConfig.lua            # Constants (balance, proxy URL, fees, cache TTLs)
-│   │   ├── ProxyClient.lua           # HttpService wrapper + server-side cache + stale fallback
-│   │   ├── NetworkHandler.server.lua  # ALL RemoteFunctions + player lifecycle + loops
-│   │   ├── TradingService/
-│   │   │   ├── Economy.lua           # Buy, sell, short, cover, fees, validation, stats
-│   │   │   ├── Portfolio.lua         # P&L calculation, portfolio valuation
-│   │   │   ├── Orders.lua            # Limit/stop/take-profit orders, 10s matching loop
-│   │   │   ├── XPManager.lua         # XP calculation, 50-level thresholds, ranks
-│   │   │   ├── Perks.lua             # 10 perk definitions, unlock logic
-│   │   │   ├── Missions.lua          # 10 missions, daily rotation, progress, claims
-│   │   │   ├── OfficeManager.lua     # Office tier progression (profit thresholds)
-│   │   │   ├── ClubManager.lua       # Club CRUD, members, roles, chat, stats
-│   │   │   ├── TournamentManager.lua # Weekly tournaments, separate $10K portfolios
-│   │   │   └── CopyTrade.lua         # Sanitized delayed portfolio sharing
-│   │   └── DataStore/
-│   │       ├── PlayerData.lua        # DataStore persistence + batch writes + retry
-│   │       └── Leaderboard.lua       # Global rankings cache (5min refresh)
-│   ├── ReplicatedStorage/
-│   │   └── Types.lua                 # Shared Luau type definitions
-│   └── StarterPlayer/
-│       └── StarterPlayerScripts/
-│           └── UI/
-│               ├── MarketScreen.client.lua    # Watchlist (16 symbols, 2s refresh)
-│               ├── TradeWidget.client.lua     # Buy/sell modal
-│               ├── ProfileScreen.client.lua   # XP bar, perks, missions (Tab key)
-│               ├── ChartView.client.lua       # Candlestick chart, timeframes
-│               ├── NewsWidget.client.lua      # "Why did it move?" panel
-│               ├── ClubScreen.client.lua      # Club panel (C key)
-│               └── LeaderboardScreen.client.lua # Rankings (L key)
-│
-└── docs/superpowers/
-    ├── specs/
-    │   └── 2026-06-14-tradescape-design.md    # Full game design spec
-    └── plans/
-        ├── 2026-06-14-tradescape-phase-1.md   # MVP: proxy + trading core
-        ├── 2026-06-14-tradescape-phase-2.md   # RPG: levels, perks, missions
-        ├── 2026-06-14-tradescape-phase-3.md   # Advanced: orders, shorts, charts
-        └── 2026-06-14-tradescape-phase-4.md   # Social: clubs, tournaments
+└── roblox/                               # Roblox Luau source
+    ├── ServerScriptService/
+    │   ├── GameConfig.lua                # Constants (proxy URL, API key)
+    │   ├── ProxyClient.lua               # HttpService wrapper + cache
+    │   ├── NetworkHandler.server.lua     # RemoteFunctions + player lifecycle
+    │   ├── InitWorld.server.lua          # Creates Baseplate + SpawnLocation
+    │   ├── CityBuilder.server.lua        # Builds explorable city (buildings, streets)
+    │   ├── StockSpawner.server.lua       # Collectible stock items (Touched events)
+    │   ├── EnemySpawner.server.lua       # Patrolling enemies on rooftops
+    │   ├── NatureBuilder.server.lua      # Trees, plants, birds, street details
+    │   ├── CarSpawner.server.lua         # Drivable cars on streets
+    │   └── TradingService/               # Game economy modules
+    ├── ReplicatedStorage/
+    │   └── Types.lua
+    └── StarterPlayer/StarterPlayerScripts/
+        ├── InventoryUI.client.lua        # Collected stocks counter + inventory (I key)
+        ├── CarControls.client.lua        # Enter/drive/exit cars (E/WASD/F)
+        └── UI/                           # Market screens (disabled for Level 1)
 ```
+
+---
+
+## Game State
+
+### Level 1: "The Collector"
+- 2000x2000 city with ~150 explorable buildings
+- Buildings have interiors (desks, shelves, stairs)
+- 16 collectible stock items (AAPL, TSLA, MSFT, etc.)
+- 30 patrolling enemies on rooftops
+- ~80 cars driving on streets (drivable with E/WASD/F)
+- Trees, bushes, flowers, birds flying
+- Counter: "Collected: 0 / 16"
+- Press I for inventory
+
+### Stock collectibles locations
+Scattered across the city:
+- Downtown center (4 stocks)
+- Northwest/Northeast corners (4 stocks)
+- Mid-west/Mid-east (4 stocks)
+- Near beach/far corners (4 stocks)
+
+### Enemies
+- Patrol rooftops, chase player if < 20 studs
+- Red body, yellow glowing eyes
+- Speed: patrol 16, chase 24
 
 ---
 
 ## Development Workflow
 
-### Adding a new feature
+### Rebuild cycle
+1. Edit `.lua` files in `roblox/`
+2. Rebuild: `& "C:\Users\Anto\AppData\Local\Microsoft\WinGet\Packages\Rojo.Rojo_Microsoft.Winget.Source_8wekyb3d8bbwe\rojo.exe" build -o tradescape.rbxlx`
+3. Close Studio, reopen with the new .rbxlx
+4. Press F5 to test
 
-1. **Update `roadmap.md`** — add the feature to the appropriate phase
-2. **Write a plan** in `docs/superpowers/plans/YYYY-MM-DD-tradescape-phase-N.md`
-3. **Use subagent-driven development** — dispatch one agent per task
-4. **After each task:** verify proxy tests pass, commit
-5. **Rebuild .rbxlx** with Rojo
-6. **Update CHANGELOG** with new features
-7. **Push to GitHub** — Render auto-deploys from master
+### If Studio won't pick up changes
+The saved place in Studio may override the .rbxlx. Solution:
+1. Close Studio WITHOUT saving
+2. Reopen the .rbxlx file directly
+3. Press F5
 
-### Subagent dispatch pattern
-```
-Agent with: exact file paths, complete code, no placeholders
-→ Agent creates file, commits
-→ Verify (run proxy tests if applicable)
-→ Update CHANGELOG + roadmap
-→ Push
-```
-
-### Testing proxy
-```bash
-cd c:\pipe\proxy
-npm test                    # Run all 14 tests
-node --test tests/quote.test.js  # Run specific test file
-```
-
-Roblox Luau code cannot be tested from CLI — test in Roblox Studio.
+### Testing via MCP
+1. Open Studio, press F5
+2. Check MCP: `curl.exe -s "http://localhost:58741/health"`
+3. Execute Luau to test features
+4. Take screenshots to verify
 
 ---
 
-## Architecture Overview
+## Key Credentials
 
-```
-Yahoo Finance API
-        ↓ (yahoo-finance2 v3, requires `new YahooFinance()`)
-Node.js Proxy (Express 5.2, Render free tier)
-  - Cache: node-cache, separate TTL per data type
-  - Auth: X-API-Key header shared between proxy and Roblox
-  - Rate limit: sliding window, 100 req/min default
-        ↓ HTTPS
-Roblox Server (HttpService via ProxyClient.lua)
-  - Server-side cache + stale fallback (120s)
-  - DataStore: batch writes every 6s, exponential backoff
-  - Order processing: every 10s heartbeat
-  - Leaderboard refresh: every 5 min
-        ↓ RemoteFunctions (22 total)
-Roblox Client (Luau LocalScripts)
-  - 7 UI screens: Market, Trade, Profile, Chart, News, Club, Leaderboard
-  - Keys: Tab=Profile, C=Club, L=Leaderboard
-```
+| Item | Value |
+|------|-------|
+| GitHub | https://github.com/FiveTechSoft/tradescape |
+| Proxy | https://tradescape-nxq0.onrender.com |
+| API Key | `615942e2f23d63b2f765d6d9771319291323442d86ae73ab8bf9d81cad75724b` |
+| Roblox Experience | 10326856686 |
+| MCP Port | localhost:58741 |
+| MCP Package | `@chrrxs/robloxstudio-mcp@latest` |
 
 ---
 
-## Key URLs & Credentials
+## Known Issues
 
-| Item | Value | Where to change |
-|------|-------|-----------------|
-| GitHub repo | https://github.com/FiveTechSoft/tradescape | — |
-| Proxy URL | https://tradescape-nxq0.onrender.com | `GameConfig.lua:14`, `render.yaml` |
-| API Key | `615942e2f23d63b2f765d6d9771319291323442d86ae73ab8bf9d81cad75724b` | `GameConfig.lua:15`, `.env`, Render dashboard |
-| Roblox Experience ID | 10326856686 | `CHANGELOG.md`, Render in Studio |
-| Roblox Community ID | 173376366 | Roblox dashboard |
-| Render Service | tradescape-nxq0 | Render dashboard |
-| Render Service ID | srv-d8n9fibtqb8s73ctsiag | Render dashboard |
-
-### Render Settings
-- Root Directory: (empty)
-- Build Command: `cd proxy && npm install`
-- Start Command: `cd proxy && npm start`
-- Env Var: `API_KEY` = (see above)
-
----
-
-## Current State
-
-### Completed (Phases 1-4)
-- ✅ Proxy: all 5 endpoints + auth + rate limit + caching (14 tests)
-- ✅ Trading: buy/sell market orders, portfolio with P&L
-- ✅ RPG: 50 levels, 6 ranks, XP, 10 perks, 10 missions, 5 office tiers
-- ✅ Advanced: limit/stop/take-profit orders, short selling, candlestick charts
-- ✅ Social: clubs, tournaments, global leaderboard, copy-trading
-- ✅ UI: 7 screens (Market, Trade, Profile, Chart, News, Club, Leaderboard)
-- ✅ Deployment: Render free tier, Rojo build system
-- ✅ GitHub: full CI-ready repo structure
-
-### Pending
-- ⬜ Phase 5: Monetization (Robux cosmetics, premium data, themes)
-- ⬜ Phase 6: Expansion (options/futures, market events, seasons)
-- ⬜ Roblox new creator waiting period (24-72h to make public)
-- ⬜ VPS deployment (currently on Render free tier)
-
----
-
-## Known Issues & Notes
-
-1. **yahoo-finance2 v3 breaking change:** Must use `new YahooFinance()`, not direct import. The service wrapper in `proxy/src/services/yahoo.js` already handles this.
-
-2. **Express 5.x** is in use, not Express 4. Route mounting uses `app.use(router)`.
-
-3. **Render cold start:** Free tier sleeps after 15min inactivity. First request takes ~30s to wake. Subsequent requests are fast.
-
-4. **Roblox new creator limit:** New accounts have a waiting period before games can be made public. Experience 10326856686 is pending. Check https://create.roblox.com/dashboard/creations/experiences/10326856686/overview
-
-5. **Rojo path:** The Rojo CLI is installed via winget at a specific path. See the "Quick Resume" section above. Add to PATH for convenience.
-
-6. **Market closed on weekends:** Prices won't update. Market status endpoint returns "closed" for all exchanges on Saturday/Sunday.
-
-7. **No Roblox CI:** All Luau code is written to files but cannot be tested from CLI. Testing requires Roblox Studio.
-
----
-
-## Future Dev Sessions
-
-When resuming development:
-
-1. `git pull` to get latest
-2. Check `roadmap.md` for next phase
-3. Write a new plan in `docs/superpowers/plans/`
-4. Dispatch subagents per task
-5. Rebuild `.rbxlx` after changes
-6. `git push` — Render auto-deploys
-7. Open in Roblox Studio to test
-
-For Phase 5 (Monetization): focus on Robux products that don't give gameplay advantage — more portfolio slots, office decorations, premium data, visual themes.
-
-For Phase 6 (Expansion): options trading, futures, market crash events, seasons, public API.
+1. **MCP overrides are temporary** — lost on Studio restart. Fix code permanently in .lua files.
+2. **Rojo build may not apply** — if Studio saved over the place file, close without saving and reopen.
+3. **DataStore doesn't work in local testing** — use pcall stubs in NetworkHandler.
+4. **Render cold start** — free tier sleeps after 15min, first request ~30s.
+5. **`goto` is reserved in Luau** — use nested if/else instead.
+6. **`_G` doesn't share between LocalScripts** — use `shared` instead.
